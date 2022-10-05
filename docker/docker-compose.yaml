@@ -1,0 +1,52 @@
+version: '3'
+
+networks:
+  project1-network:
+    driver: bridge
+
+services:
+
+        project1:
+            build:
+                context: ./php-fpm
+                args:
+                    - timezone=${TZ}
+            networks:
+                - project1-network
+            volumes:
+                - ./../project1:/project1:rw,cached
+                - project1_log:/project1/var/log
+            env_file:
+                - .env
+
+
+        nginx:
+            container_name: nginx
+            build:
+                context: ./nginx
+                args:
+                    - timezone=${TZ}
+            ports:
+                - "80:80"
+                - "443:443"
+            networks:
+                - project1-network
+            depends_on:
+                - project1
+            volumes:
+                - ./../project1/public:/project1/public
+                - ./nginx/ssl:/etc/nginx/ssl
+                - ./nginx/conf.d:/etc/nginx/conf.d
+                - ./nginx/nginx_log:/var/log/nginx
+                - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+            env_file:
+                - .env
+            command: /bin/bash -c "exec nginx -g 'daemon off;'"
+
+
+
+volumes:
+    nginx_log:
+    project1_log:
+    db:
+        driver: local
